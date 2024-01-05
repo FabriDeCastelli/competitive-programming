@@ -1,8 +1,5 @@
 pub fn holiday_planning(data: &Vec<Vec<i32>>, n: usize, d: usize) -> i32 {
 
-    // This array contains the cumulative weight of each attraction in each city
-    // The first element of the array is 0, meaning that we can decide not to include it in the trip
-    let weights: Vec<_> = vec![(0..=d).collect::<Vec<_>>(); n];
 
     // This array contains the cumulative value (reward) of each attraction in each city
     // Again here, the first element of the array is 0, meaning that we can decide not to include it in the trip
@@ -29,13 +26,12 @@ pub fn holiday_planning(data: &Vec<Vec<i32>>, n: usize, d: usize) -> i32 {
         // For every attraction in the city, including the possibility of not visiting it
         for j in 0..=d {
 
-            let current_weight = weights[i - 1][j];
             let current_value = values[i - 1][j];
 
             // Recursion formula, choose the best value among all candidates in the same row
             // Only if it fits (start from current_weight)
-            for k in current_weight..=d {
-                table[i][k] = max(table[i][k], table[i - 1][k - current_weight] + current_value);
+            for k in j..=d {
+                table[i][k] = max(table[i][k], table[i - 1][k - j] + current_value);
             }
         }
 
