@@ -32,7 +32,8 @@ pub fn holiday_planning(data: &Vec<Vec<i32>>, n: usize, d: usize) -> i32 {
             let current_weight = weights[i - 1][j];
             let current_value = values[i - 1][j];
 
-            // Recursion formula
+            // Recursion formula, choose the best value among all candidates in the same row
+            // Only if it fits (start from current_weight)
             for k in current_weight..=d {
                 table[i][k] = max(table[i][k], table[i - 1][k - current_weight] + current_value);
             }
@@ -40,15 +41,32 @@ pub fn holiday_planning(data: &Vec<Vec<i32>>, n: usize, d: usize) -> i32 {
 
     }
 
-
     // The result is the bottom right element of the table
     table[n][d]
 
 }
 
 
-pub fn design_a_course() -> i32 {
-    unimplemented!();
+pub fn design_a_course(data: Vec<(i32, i32)>, n: usize) -> i32 {
+
+    let mut table = vec![1; n];
+
+    // Sort topics based on the first element of the couple (beauty in this case)
+    let mut sorted_topics = data.clone();
+    sorted_topics.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.cmp(&a.1)));
+
+    // Start from second element because the LIS = 1 counting the first element only
+    for i in 1..n {
+        for j in 0..i {
+            // Contribution only if difficulty is greater than the other element's difficulty
+            if sorted_topics[i].1 > sorted_topics[j].1 {
+                table[i] = table[i].max(table[j] + 1);
+            }
+        }
+    }
+
+    // The result is the maximum of the dynamic programming table
+    table.into_iter().max().unwrap_or(0)
 }
 
 
