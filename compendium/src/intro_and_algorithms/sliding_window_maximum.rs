@@ -1,4 +1,3 @@
-
 /// Sliding Window Maximum: returns an array of length n - k + 1
 /// with the maximum element in each window of size k of a
 ///
@@ -11,7 +10,8 @@
 ///
 // \theta(nk)
 pub fn swm_slow<T>(a: Vec<T>, k: usize) -> Vec<T>
-    where T: Ord + Default + Copy
+where
+    T: Ord + Default + Copy,
 {
     let n = a.len();
     let mut result = Vec::with_capacity(n - k + 1);
@@ -22,7 +22,6 @@ pub fn swm_slow<T>(a: Vec<T>, k: usize) -> Vec<T>
             max = a[j].max(max);
         }
         result.push(max);
-
     }
 
     result
@@ -46,7 +45,8 @@ use std::collections::VecDeque;
 ///     - every index 0 <= i < n is inserted and removed exactly once in the deque
 ///     - at every iteration i, the deque is sorted in non-increasing order
 pub fn swm<T>(a: Vec<T>, k: usize) -> Vec<T>
-    where T: Ord + Default + Copy
+where
+    T: Ord + Default + Copy,
 {
     let n = a.len();
     let mut result = Vec::with_capacity(n - k + 1);
@@ -78,12 +78,11 @@ pub fn swm<T>(a: Vec<T>, k: usize) -> Vec<T>
     result
 }
 
-
 #[test]
 pub fn test_swm() {
     let a = vec![1, 3, 5, 4, 3];
     let res_1 = swm_slow(a.clone(), 2);
-    let res_2  = swm(a.clone(), 2);
+    let res_2 = swm(a.clone(), 2);
     assert_eq!(res_1, vec![3, 5, 5, 4]);
     assert_eq!(res_2, vec![3, 5, 5, 4]);
 }
