@@ -17,7 +17,7 @@ use std::fmt::Display;
 /// \theta(n log n) due to std::collections::HashMap
 pub fn longest_k_good_segments<T>(a: Vec<T>, k: usize) -> (usize, usize)
 where
-    T: Ord + Copy + Default + Hash + Display
+    T: Ord + Copy + Default + Hash + Display,
 {
     let n = a.len();
     let mut i = 0;
@@ -29,7 +29,6 @@ where
     let mut support: HashMap<T, i32> = HashMap::with_capacity(n);
 
     while j < n {
-
         *support.entry(a[j]).or_insert(0) += 1;
         while support.len() > k {
             if let Some(count) = support.get_mut(&a[i]) {
@@ -44,13 +43,11 @@ where
             best_count = j - i + 1;
             best_i = i;
             best_j = j;
-
         }
         j = j + 1
     }
 
     (best_i, best_j)
-
 }
 
 #[test]
