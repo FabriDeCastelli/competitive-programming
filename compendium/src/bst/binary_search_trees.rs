@@ -11,12 +11,6 @@ where
     right: Option<Box<BST<T>>>,
 }
 
-#[derive(PartialEq)]
-pub enum Position {
-    LEFT,
-    RIGHT,
-}
-
 impl<T> BST<T>
 where
     T: Default + Ord + Debug + Num + NumCast + Copy + Clone,
@@ -37,22 +31,51 @@ where
         }
     }
 
-    /// Adds a new node to the BST<T> at the given position.
+    /// Adds a new node to the tree maintaining the BST property.
     ///
     /// # Arguments
     ///
-    /// * `node`: the node to add
-    /// * `position`: if left or right child
+    /// * `val`: the value to add to the BST
     ///
     /// returns: ()
     ///
-    pub fn add(&mut self, node: BST<T>, position: Position) {
-        let node = Box::new(node);
-        if position == Position::LEFT {
-            self.left = Some(node);
+    pub fn add(&mut self, val: T) {
+        if val < self.key {
+            if let Some(ref mut left) = self.left {
+                left.add(val);
+            } else {
+                self.left = Some(Box::new(BST::new(val)));
+            }
         } else {
-            self.right = Some(node);
+            if let Some(ref mut right) = self.right {
+                right.add(val);
+            } else {
+                self.right = Some(Box::new(BST::new(val)));
+            }
         }
+    }
+
+    pub fn get_leaves(&self) -> Vec<T> {
+        let mut leaves = Vec::new();
+        self.get_leaves_rec(&mut leaves);
+        leaves.iter().for_each(|x| println!("{:?}", x));
+        leaves
+    }
+
+    fn get_leaves_rec(&self, leaves: &mut Vec<T>) {
+        if self.left.is_none() && self.right.is_none() {
+            leaves.push(self.key);
+        }
+        if let Some(ref left) = self.left {
+            left.get_leaves_rec(leaves);
+        }
+        if let Some(ref right) = self.right {
+            right.get_leaves_rec(leaves);
+        }
+    }
+
+    pub fn search(&self, x: T) -> bool {
+        self.predecessor(x + T::one()).eq(x)
     }
 
     /// Returns the size of the subtree rooted at the current node.
@@ -260,7 +283,6 @@ where
     }
 
     fn successor_rec(&self, x: T, mut successor: Option<T>) -> Option<T> {
-
         if self.key.le(&x) {
             if let Some(ref right) = self.right {
                 return right.successor_rec(x, successor);
@@ -272,7 +294,6 @@ where
             }
         }
         successor
-
     }
 }
 
@@ -280,15 +301,14 @@ where
 
 fn setup() -> BST<i32> {
     let mut bst = BST::new(2);
-    bst.add(BST::new(1), Position::LEFT);
-    bst.add(BST::new(3), Position::RIGHT);
+    bst.add(1);
+    bst.add(3);
     bst
 }
 
 #[test]
 pub fn test_subtree_size() {
     let bst = setup();
-
     assert_eq!(bst.subtree_size(), 3);
 }
 
@@ -300,83 +320,47 @@ pub fn test_depth() {
 
 #[test]
 pub fn test_bst_check() {
-    let mut bst = BST::new(2);
-    bst.add(BST::new(1), Position::LEFT);
-    bst.add(BST::new(3), Position::RIGHT);
-
-    assert_eq!(bst.bst_check(), true);
-    let mut bst = BST::new(2);
-    bst.add(BST::new(3), Position::LEFT);
-    bst.add(BST::new(1), Position::RIGHT);
-
-    assert_eq!(bst.bst_check(), false);
-    let mut bst = BST::new(2);
-    bst.add(BST::new(1), Position::LEFT);
-    bst.add(BST::new(2), Position::RIGHT);
+    let mut bst = setup();
     assert_eq!(bst.bst_check(), true);
 
-    let mut bst = BST::new(2);
-    bst.add(BST::new(1), Position::LEFT);
-    let mut bst_right = BST::new(3);
-    bst_right.add(BST::new(4), Position::RIGHT);
-    bst.add(bst_right, Position::RIGHT);
+    bst = BST::new(2);
+    bst.add(3);
+    bst.add(1);
     assert_eq!(bst.bst_check(), true);
-
-    let mut bst = BST::new(5);
-    let mut bst_left = BST::new(3);
-    bst_left.add(BST::new(2), Position::LEFT);
-    bst_left.add(BST::new(4), Position::RIGHT);
-    bst.add(bst_left, Position::LEFT);
-    bst.add(BST::new(6), Position::RIGHT);
-    assert_eq!(bst.bst_check(), true);
-
-    let mut bst = BST::new(5);
-    let mut bst_left = BST::new(3);
-    bst_left.add(BST::new(2), Position::LEFT);
-    bst_left.add(BST::new(6), Position::RIGHT);
-    bst.add(bst_left, Position::LEFT);
-    bst.add(BST::new(7), Position::RIGHT);
-    assert_eq!(bst.bst_check(), false);
 }
 
 #[test]
 pub fn test_equally_distanced_nodes() {
     let mut bst = BST::new(1);
-    let mut bst_left = BST::new(1);
-    bst_left.add(BST::new(2), Position::LEFT);
-    bst.add(bst_left, Position::LEFT);
+    bst.add(1);
+    bst.add(2);
     assert_eq!(bst.equally_distanced_nodes(), 1);
 
-    let mut bst = BST::new(0);
-    bst.add(BST::new(0), Position::LEFT);
-    bst.add(BST::new(0), Position::RIGHT);
+    bst = BST::new(0);
+    bst.add(0);
+    bst.add(0);
     assert_eq!(bst.equally_distanced_nodes(), 3);
 
-    let mut bst = BST::new(2);
-    bst.add(BST::new(1), Position::LEFT);
-    bst.add(BST::new(3), Position::RIGHT);
+    bst = setup();
     assert_eq!(bst.equally_distanced_nodes(), 0);
 }
 
 #[test]
 pub fn test_maximum_path_sum() {
-    let mut bst = BST::new(1);
-    let mut bst_left = BST::new(2);
-    bst_left.add(BST::new(4), Position::LEFT);
-    bst_left.add(BST::new(5), Position::RIGHT);
-    bst.add(bst_left, Position::LEFT);
-    let mut bst_right = BST::new(3);
-    bst_right.add(BST::new(6), Position::LEFT);
-    bst_right.add(BST::new(7), Position::RIGHT);
-    bst.add(bst_right, Position::RIGHT);
-    assert_eq!(bst.maximum_path_sum(), 18);
+    let mut bst = BST::new(4);
+    bst.add(2);
+    bst.add(6);
+    bst.add(1);
+    bst.add(3);
+    bst.add(5);
+    bst.add(7);
+    bst.get_leaves();
+    assert_eq!(bst.maximum_path_sum(), 22);
 }
 
 #[test]
 pub fn test_predecessor_successor() {
-    let mut bst = BST::new(2);
-    bst.add(BST::new(1), Position::LEFT);
-    bst.add(BST::new(3), Position::RIGHT);
+    let mut bst = setup();
     // Predecessor
     assert_eq!(bst.predecessor(3), Some(2));
     assert_eq!(bst.predecessor(1), None);
@@ -388,6 +372,4 @@ pub fn test_predecessor_successor() {
     assert_eq!(bst.successor(1), Some(2));
     assert_eq!(bst.successor(2), Some(3));
     assert_eq!(bst.successor(-10), Some(1));
-
-
 }
