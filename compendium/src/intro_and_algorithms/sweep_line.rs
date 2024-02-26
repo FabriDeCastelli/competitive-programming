@@ -1,3 +1,4 @@
+use std::ops::Add;
 
 /// Returns an array containing the prefix sums of the input array.
 ///
@@ -8,14 +9,19 @@
 /// returns: Vec<T, Global>
 ///
 /// \theta(n)
-fn prefix_sums(a: Vec<i32>) -> Vec<i32>
+pub fn prefix_sums<T>(a: Vec<T>) -> Vec<T>
+where
+    T: Ord + Clone + Default + Add<Output = T>,
 {
-    a.iter()
-        .scan(0, |sum, &x| {
-            *sum += x;
-            Some(*sum)
-        })
-        .collect::<Vec<_>>()
+    let n = a.len();
+    let mut prefix_sums = Vec::with_capacity(n);
+    prefix_sums.push(T::default());
+
+    for i in 0..n - 1 {
+        prefix_sums.push(prefix_sums[i].clone() + a[i].clone());
+    }
+
+    prefix_sums
 }
 
 /// Given an array of intervals of the form [a, b] with a <= b, return the maximum number
