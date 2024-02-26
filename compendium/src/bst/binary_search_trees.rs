@@ -125,11 +125,11 @@ where
             (bst_right, min_right, max_right) = right.bst_check_rec()
         }
 
-        return (
+        (
             self.key.ge(&max_left) && self.key.le(&min_right) && bst_left && bst_right,
             min_right.min(self.key).min(min_left),
             max_right.max(self.key).max(max_left),
-        );
+        )
     }
 
     pub fn equally_distanced_nodes(&self) -> usize {
@@ -156,6 +156,123 @@ where
             count_left + count_right + if subtree_sum == distance { 1 } else { 0 },
             subtree_sum,
         )
+    }
+
+    /// Returns the maximum path sum between to leaves in the BST<T>
+    ///
+    /// returns: T
+    ///
+    pub fn maximum_path_sum(&self) -> T {
+        self.maximum_path_sum_rec().0
+    }
+
+    /// Recursive utility function for maximum_path_sum
+    ///
+    /// returns: (T, T)
+    ///
+    fn maximum_path_sum_rec(&self) -> (T, T) {
+        let min = NumCast::from(i32::MIN).unwrap();
+
+        let mut best_left = min;
+        let mut max_to_left_leave = min;
+        let mut best_right = min;
+        let mut max_to_right_leaf = min;
+        let mut best_current = min;
+        let mut max_current = min;
+
+        if let Some(ref left) = self.left {
+            (best_left, max_to_left_leave) = left.maximum_path_sum_rec();
+        }
+
+        if let Some(ref right) = self.right {
+            (best_right, max_to_right_leaf) = right.maximum_path_sum_rec();
+        }
+
+        // Weird stuff to avoid overflows in summing min
+
+        if max_to_left_leave == min || max_to_right_leaf == min {
+            best_current = best_right.max(best_left);
+        } else {
+            best_current = best_right
+                .max(best_left)
+                .max(max_to_right_leaf + max_to_left_leave + self.key);
+        }
+
+        max_current = max_to_left_leave.max(max_to_right_leaf);
+
+        // Weird stuff to avoid overflows in summing min (again)
+
+        if max_current == min {
+            max_current = T::default();
+        }
+
+        max_current = max_current + self.key;
+
+        (best_current, max_current)
+    }
+
+    /// Computes the predecessor of a given key in the BST<T>
+    /// The key might not belong to the BST<T>
+    ///
+    /// # Arguments
+    ///
+    /// * `x`: the key to find the predecessor of
+    ///
+    /// returns: Option<T>
+    ///
+    pub fn predecessor(&self, x: T) -> Option<T> {
+        if !self.bst_check() {
+            println!("The tree is not a BST... can't find predecessor");
+            return None;
+        }
+        self.predecessor_rec(x, None)
+    }
+
+    /// Recursive utility function for predecessor
+    ///
+    /// # Arguments
+    ///
+    /// * `x`: the key to find the predecessor of
+    /// * `predecessor`: the current predecessor
+    ///
+    /// returns: Option<T>
+    ///
+    fn predecessor_rec(&self, x: T, mut predecessor: Option<T>) -> Option<T> {
+        if self.key.ge(&x) {
+            if let Some(ref left) = self.left {
+                return left.predecessor_rec(x, predecessor);
+            }
+        } else {
+            predecessor = Some(self.key);
+            if let Some(ref right) = self.right {
+                return right.predecessor_rec(x, predecessor);
+            }
+        }
+        predecessor
+    }
+
+    pub fn successor(&self, x: T) -> Option<T> {
+        if !self.bst_check() {
+            println!("The tree is not a BST... can't find successor");
+            return None;
+        }
+        self.successor_rec(x, None)
+    }
+
+    fn successor_rec(&self, x: T, mut successor: Option<T>) -> Option<T> {
+
+        if self.key.le(&x) {
+            if let Some(ref right) = self.right {
+                return right.successor_rec(x, successor);
+            }
+        } else {
+            successor = Some(self.key);
+            if let Some(ref left) = self.left {
+                return left.successor_rec(x, successor);
+            }
+        }
+        successor
+
     }
 }
 
@@ -239,4 +356,38 @@ pub fn test_equally_distanced_nodes() {
     bst.add(BST::new(1), Position::LEFT);
     bst.add(BST::new(3), Position::RIGHT);
     assert_eq!(bst.equally_distanced_nodes(), 0);
+}
+
+#[test]
+pub fn test_maximum_path_sum() {
+    let mut bst = BST::new(1);
+    let mut bst_left = BST::new(2);
+    bst_left.add(BST::new(4), Position::LEFT);
+    bst_left.add(BST::new(5), Position::RIGHT);
+    bst.add(bst_left, Position::LEFT);
+    let mut bst_right = BST::new(3);
+    bst_right.add(BST::new(6), Position::LEFT);
+    bst_right.add(BST::new(7), Position::RIGHT);
+    bst.add(bst_right, Position::RIGHT);
+    assert_eq!(bst.maximum_path_sum(), 18);
+}
+
+#[test]
+pub fn test_predecessor_successor() {
+    let mut bst = BST::new(2);
+    bst.add(BST::new(1), Position::LEFT);
+    bst.add(BST::new(3), Position::RIGHT);
+    // Predecessor
+    assert_eq!(bst.predecessor(3), Some(2));
+    assert_eq!(bst.predecessor(1), None);
+    assert_eq!(bst.predecessor(2), Some(1));
+    assert_eq!(bst.predecessor(4), Some(3));
+
+    // Successor
+    assert_eq!(bst.successor(3), None);
+    assert_eq!(bst.successor(1), Some(2));
+    assert_eq!(bst.successor(2), Some(3));
+    assert_eq!(bst.successor(-10), Some(1));
+
+
 }
