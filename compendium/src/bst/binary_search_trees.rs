@@ -1,25 +1,26 @@
-use std::fmt::Debug;
 use num_traits::{Num, NumCast};
+use std::fmt::Debug;
 
 ///
 pub struct BST<T>
-where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
+where
+    T: Default + Ord + Debug + Num + NumCast + Copy + Clone,
 {
     key: T,
     left: Option<Box<BST<T>>>,
-    right: Option<Box<BST<T>>>
+    right: Option<Box<BST<T>>>,
 }
 
 #[derive(PartialEq)]
-enum Position {
-    LEFT, RIGHT
+pub enum Position {
+    LEFT,
+    RIGHT,
 }
 
 impl<T> BST<T>
-where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
+where
+    T: Default + Ord + Debug + Num + NumCast + Copy + Clone,
 {
-
-
     /// Creates a new BST<T> with the given key.
     ///
     /// # Arguments
@@ -32,7 +33,7 @@ where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
         Self {
             key,
             left: None,
-            right: None
+            right: None,
         }
     }
 
@@ -45,15 +46,13 @@ where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
     ///
     /// returns: ()
     ///
-    pub fn add(&mut self, node: BST<T>, position: Position)  {
-
+    pub fn add(&mut self, node: BST<T>, position: Position) {
         let node = Box::new(node);
         if position == Position::LEFT {
             self.left = Some(node);
         } else {
             self.right = Some(node);
         }
-
     }
 
     /// Returns the size of the subtree rooted at the current node.
@@ -61,15 +60,12 @@ where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
     /// returns: usize
     ///
     pub fn subtree_size(&self) -> usize {
-
         match (&self.left, &self.right) {
             (None, None) => 1,
             (Some(ref left), None) => 1 + left.subtree_size(),
             (None, Some(ref right)) => 1 + right.subtree_size(),
-            (Some(ref left), Some(ref right)) =>
-                1 + left.subtree_size() + right.subtree_size()
-         }
-
+            (Some(ref left), Some(ref right)) => 1 + left.subtree_size() + right.subtree_size(),
+        }
     }
 
     /// Prints the depth of each node in the BST<T>
@@ -89,9 +85,7 @@ where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
     /// returns: ()
     ///
     fn depth_rec(&self, d: usize) -> () {
-
         match (&self.left, &self.right) {
-
             (None, None) => {}
             (Some(ref left), None) => left.depth_rec(d + 1),
             (None, Some(ref right)) => right.depth_rec(d + 1),
@@ -101,7 +95,6 @@ where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
             }
         }
         println!("key: {:?} --- depth: {}", self.key, d);
-
     }
 
     /// Checks if the BST<T> is a binary search tree.
@@ -117,7 +110,6 @@ where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
     /// returns: (bool, T, T)
     ///
     pub fn bst_check_rec(&self) -> (bool, T, T) {
-
         let mut bst_left = true;
         let mut min_left = NumCast::from(i32::MAX).unwrap();
         let mut max_left = NumCast::from(i32::MIN).unwrap();
@@ -136,14 +128,36 @@ where T: Default + Ord + Debug + Num + NumCast + Copy + Clone
         return (
             self.key.ge(&max_left) && self.key.le(&min_right) && bst_left && bst_right,
             min_right.min(self.key).min(min_left),
-            max_right.max(self.key).max(max_left)
-        )
-
+            max_right.max(self.key).max(max_left),
+        );
     }
 
+    pub fn equally_distanced_nodes(&self) -> usize {
+        self.equally_distanced_nodes_rec(T::default()).0
+    }
 
+    fn equally_distanced_nodes_rec(&self, distance: T) -> (usize, T) {
+        let mut sum_left = T::default();
+        let mut count_left = 0;
+        let mut sum_right = T::default();
+        let mut count_right = 0;
+
+        if let Some(ref left) = self.left {
+            (count_left, sum_left) = left.equally_distanced_nodes_rec(distance + self.key);
+        }
+
+        if let Some(ref right) = self.right {
+            (count_right, sum_right) = right.equally_distanced_nodes_rec(distance + self.key);
+        }
+
+        let subtree_sum = sum_left + sum_right + self.key;
+
+        (
+            count_left + count_right + if subtree_sum == distance { 1 } else { 0 },
+            subtree_sum,
+        )
+    }
 }
-
 
 /// --------- TESTS ------------
 
@@ -152,18 +166,14 @@ fn setup() -> BST<i32> {
     bst.add(BST::new(1), Position::LEFT);
     bst.add(BST::new(3), Position::RIGHT);
     bst
-
 }
 
 #[test]
 pub fn test_subtree_size() {
-
     let bst = setup();
 
     assert_eq!(bst.subtree_size(), 3);
-
 }
-
 
 #[test]
 pub fn test_depth() {
@@ -210,4 +220,23 @@ pub fn test_bst_check() {
     bst.add(bst_left, Position::LEFT);
     bst.add(BST::new(7), Position::RIGHT);
     assert_eq!(bst.bst_check(), false);
+}
+
+#[test]
+pub fn test_equally_distanced_nodes() {
+    let mut bst = BST::new(1);
+    let mut bst_left = BST::new(1);
+    bst_left.add(BST::new(2), Position::LEFT);
+    bst.add(bst_left, Position::LEFT);
+    assert_eq!(bst.equally_distanced_nodes(), 1);
+
+    let mut bst = BST::new(0);
+    bst.add(BST::new(0), Position::LEFT);
+    bst.add(BST::new(0), Position::RIGHT);
+    assert_eq!(bst.equally_distanced_nodes(), 3);
+
+    let mut bst = BST::new(2);
+    bst.add(BST::new(1), Position::LEFT);
+    bst.add(BST::new(3), Position::RIGHT);
+    assert_eq!(bst.equally_distanced_nodes(), 0);
 }
