@@ -324,7 +324,7 @@ where
 
 impl<T> BST<T>
 where
-    T: Default + Ord + Debug + MinMax + Copy + Clone + Add<Output = T>,
+    T: Default + Ord + Debug +  Copy + Clone + Add<Output = T>,
 {
     pub fn equally_distanced_nodes(&self) -> usize {
         self.equally_distanced_nodes_rec(<T>::default()).0
