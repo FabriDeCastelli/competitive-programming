@@ -1,4 +1,3 @@
-
 macro_rules! define_min_max {
     ($type:ty) => {
         impl MinMax for $type {
@@ -8,8 +7,6 @@ macro_rules! define_min_max {
             fn one() -> Self {
                 1 as $type
             }
-
-
         }
     };
 }
@@ -50,7 +47,6 @@ define_min_max_for_tuple!(T1, T2);
 
 #[test]
 fn test_tuples_ordering() {
-
     let a = (1, 2);
     let b = (2, 1);
     let min = <(i32, i32)>::MIN;
@@ -64,5 +60,4 @@ fn test_tuples_ordering() {
 
     let zero = <(i32, i32)>::default();
     assert_eq!(zero, (0, 0));
-
 }
