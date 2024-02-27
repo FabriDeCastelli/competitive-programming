@@ -1,10 +1,11 @@
-use num_traits::{Num, NumCast};
+use crate::utilities::MinMax;
 use std::fmt::Debug;
+use std::ops::Add;
 
 #[derive(Clone)]
 pub struct BST<T>
 where
-    T: Default + Ord + Debug + Num + NumCast + Copy + Clone,
+    T: Default + Ord + Debug + MinMax + Copy + Clone,
 {
     key: T,
     left: Option<Box<BST<T>>>,
@@ -13,7 +14,7 @@ where
 
 impl<T> BST<T>
 where
-    T: Default + Ord + Debug + Num + NumCast + Copy + Clone,
+    T: Default + Ord + Debug + MinMax + Copy + Clone,
 {
     /// Creates a new BST<T> with the given key.
     ///
@@ -37,9 +38,17 @@ where
             bst.add(v[i]);
         }
         bst
-
     }
 
+    pub fn print(&self) {
+        println!("{:?}", self.key);
+        if let Some(ref left) = self.left {
+            left.print();
+        }
+        if let Some(ref right) = self.right {
+            right.print();
+        }
+    }
 
     /// Adds a new node to the tree maintaining the BST property.
     ///
@@ -72,6 +81,13 @@ where
         self
     }
 
+    pub fn max(&self) -> &Self {
+        if let Some(ref right) = self.right {
+            return right.max();
+        }
+        self
+    }
+
     pub fn delete(&mut self, x: T) -> bool {
         if !self.search(x) {
             return false;
@@ -84,19 +100,27 @@ where
 
     fn delete_rec(&mut self, x: T) -> Option<Box<BST<T>>> {
         if self.key.eq(&x) {
-            // Case 1: only one of the children
-            if self.left.is_none() {
-                return self.right.take();
-            } else if self.right.is_none() {
-                return self.left.take();
+            // Case 1: no children
+            if self.left.is_none() && self.right.is_none() {
+                return None;
+            }
+            // Case 2: only left child
+            if self.right.is_none() {
+                let mut left_subtree = self.left.take().unwrap();
+                // take maximum of the left subtree
+                let max = left_subtree.max();
+                // set current node value as the maximum
+                self.key = max.key;
+                // delete the maximum recursively
+                self.left = left_subtree.delete_rec(max.key);
             } else {
-                // Case 3: both children
+                // Case 3, 4: both children or only right child
                 let mut right_subtree = self.right.take().unwrap();
                 // take minimum of the right subtree
                 let min = right_subtree.min();
                 // set current node value as the minimum
                 self.key = min.key;
-                // delete the minimum recursively, that will be either Case 1 or 2
+                // delete the minimum recursively
                 self.right = right_subtree.delete_rec(min.key);
             }
         } else if self.key.lt(&x) {
@@ -115,16 +139,13 @@ where
     }
 
     pub fn update(&mut self, key: T, val: T) -> bool {
-
         if !self.delete(key) {
             return false;
         }
 
         self.add(val);
         true
-
     }
-
 
     pub fn get_leaves(&self) -> Vec<T> {
         let mut leaves = Vec::new();
@@ -146,10 +167,19 @@ where
     }
 
     pub fn search(&self, x: T) -> bool {
-        match self.predecessor(x + T::one()) {
-            None => false,
-            Some(v) => v.eq(&x),
+        if self.key.eq(&x) {
+            return true;
         }
+        if self.key.lt(&x) {
+            if let Some(ref right) = self.right {
+                return right.search(x);
+            }
+        } else {
+            if let Some(ref left) = self.left {
+                return left.search(x);
+            }
+        }
+        false
     }
 
     /// Returns the size of the tree.
@@ -192,118 +222,6 @@ where
             }
         }
         println!("key: {:?} --- depth: {}", self.key, d);
-    }
-
-    /// Checks if the BST<T> is a binary search tree.
-    ///
-    /// returns: bool
-    ///
-    pub fn bst_check(&self) -> bool {
-        self.bst_check_rec().0
-    }
-
-    /// Recursive utility function for bst_check
-    ///
-    /// returns: (bool, T, T)
-    ///
-    pub fn bst_check_rec(&self) -> (bool, T, T) {
-        let mut bst_left = true;
-        let mut min_left = NumCast::from(i32::MAX).unwrap();
-        let mut max_left = NumCast::from(i32::MIN).unwrap();
-        let mut bst_right = true;
-        let mut min_right = NumCast::from(i32::MAX).unwrap();
-        let mut max_right = NumCast::from(i32::MIN).unwrap();
-
-        if let Some(ref left) = self.left {
-            (bst_left, min_left, max_left) = left.bst_check_rec()
-        }
-
-        if let Some(ref right) = self.right {
-            (bst_right, min_right, max_right) = right.bst_check_rec()
-        }
-
-        (
-            self.key.ge(&max_left) && self.key.le(&min_right) && bst_left && bst_right,
-            min_right.min(self.key).min(min_left),
-            max_right.max(self.key).max(max_left),
-        )
-    }
-
-    pub fn equally_distanced_nodes(&self) -> usize {
-        self.equally_distanced_nodes_rec(T::default()).0
-    }
-
-    fn equally_distanced_nodes_rec(&self, distance: T) -> (usize, T) {
-        let mut sum_left = T::default();
-        let mut count_left = 0;
-        let mut sum_right = T::default();
-        let mut count_right = 0;
-
-        if let Some(ref left) = self.left {
-            (count_left, sum_left) = left.equally_distanced_nodes_rec(distance + self.key);
-        }
-
-        if let Some(ref right) = self.right {
-            (count_right, sum_right) = right.equally_distanced_nodes_rec(distance + self.key);
-        }
-
-        let subtree_sum = sum_left + sum_right + self.key;
-
-        (
-            count_left + count_right + if subtree_sum == distance { 1 } else { 0 },
-            subtree_sum,
-        )
-    }
-
-    /// Returns the maximum path sum between to leaves in the BST<T>
-    ///
-    /// returns: T
-    ///
-    pub fn maximum_path_sum(&self) -> T {
-        self.maximum_path_sum_rec().0
-    }
-
-    /// Recursive utility function for maximum_path_sum
-    ///
-    /// returns: (T, T)
-    ///
-    fn maximum_path_sum_rec(&self) -> (T, T) {
-        let min = NumCast::from(i32::MIN).unwrap();
-
-        let mut best_left = min;
-        let mut max_to_left_leave = min;
-        let mut best_right = min;
-        let mut max_to_right_leaf = min;
-
-        if let Some(ref left) = self.left {
-            (best_left, max_to_left_leave) = left.maximum_path_sum_rec();
-        }
-
-        if let Some(ref right) = self.right {
-            (best_right, max_to_right_leaf) = right.maximum_path_sum_rec();
-        }
-
-        // Weird stuff to avoid overflows in summing min
-
-        let best_current = if max_to_left_leave == min || max_to_right_leaf == min {
-            best_right.max(best_left)
-        } else {
-            best_right
-                .max(best_left)
-                .max(max_to_right_leaf + max_to_left_leave + self.key)
-        };
-
-        let mut max_current = max_to_left_leave.max(max_to_right_leaf);
-
-        // Weird stuff to avoid overflows in summing min (again)
-
-        if max_current == min {
-            max_current = T::default();
-        }
-
-        max_current = max_current + self.key;
-
-        (best_current, max_current)
     }
 
     /// Computes the predecessor of a given key in the BST<T>
@@ -366,6 +284,123 @@ where
             }
         }
         successor
+    }
+
+    /// Checks if the BST<T> is a binary search tree.
+    ///
+    /// returns: bool
+    ///
+    pub fn bst_check(&self) -> bool {
+        self.bst_check_rec().0
+    }
+
+    /// Recursive utility function for bst_check
+    ///
+    /// returns: (bool, T, T)
+    ///
+    pub fn bst_check_rec(&self) -> (bool, T, T) {
+        let mut bst_left = true;
+        let mut min_left = T::MAX;
+        let mut max_left = T::MIN;
+        let mut bst_right = true;
+        let mut min_right = T::MAX;
+        let mut max_right = T::MIN;
+
+        if let Some(ref left) = self.left {
+            (bst_left, min_left, max_left) = left.bst_check_rec()
+        }
+
+        if let Some(ref right) = self.right {
+            (bst_right, min_right, max_right) = right.bst_check_rec()
+        }
+
+        (
+            self.key.ge(&max_left) && self.key.le(&min_right) && bst_left && bst_right,
+            min_right.min(self.key).min(min_left),
+            max_right.max(self.key).max(max_left),
+        )
+    }
+}
+
+impl<T> BST<T>
+where
+    T: Default + Ord + Debug + MinMax + Copy + Clone + Add<Output = T>,
+{
+    pub fn equally_distanced_nodes(&self) -> usize {
+        self.equally_distanced_nodes_rec(<T>::default()).0
+    }
+
+    fn equally_distanced_nodes_rec(&self, distance: T) -> (usize, T) {
+        let mut sum_left = T::default();
+        let mut count_left = 0;
+        let mut sum_right = T::default();
+        let mut count_right = 0;
+
+        if let Some(ref left) = self.left {
+            (count_left, sum_left) = left.equally_distanced_nodes_rec(distance + self.key);
+        }
+
+        if let Some(ref right) = self.right {
+            (count_right, sum_right) = right.equally_distanced_nodes_rec(distance + self.key);
+        }
+
+        let subtree_sum = sum_left + sum_right + self.key;
+
+        (
+            count_left + count_right + if subtree_sum == distance { 1 } else { 0 },
+            subtree_sum,
+        )
+    }
+
+    /// Returns the maximum path sum between to leaves in the BST<T>
+    ///
+    /// returns: T
+    ///
+    pub fn maximum_path_sum(&self) -> T {
+        self.maximum_path_sum_rec().0
+    }
+
+    /// Recursive utility function for maximum_path_sum
+    ///
+    /// returns: (T, T)
+    ///
+    fn maximum_path_sum_rec(&self) -> (T, T) {
+        let min = T::MIN;
+
+        let mut best_left = min;
+        let mut max_to_left_leave = min;
+        let mut best_right = min;
+        let mut max_to_right_leaf = min;
+
+        if let Some(ref left) = self.left {
+            (best_left, max_to_left_leave) = left.maximum_path_sum_rec();
+        }
+
+        if let Some(ref right) = self.right {
+            (best_right, max_to_right_leaf) = right.maximum_path_sum_rec();
+        }
+
+        // Weird stuff to avoid overflows in summing min
+
+        let best_current = if max_to_left_leave.eq(&min) || max_to_right_leaf.eq(&min) {
+            best_right.max(best_left)
+        } else {
+            best_right
+                .max(best_left)
+                .max(max_to_right_leaf + max_to_left_leave + self.key)
+        };
+
+        let mut max_current = max_to_left_leave.max(max_to_right_leaf);
+
+        // Weird stuff to avoid overflows in summing min (again)
+
+        if max_current.eq(&min) {
+            max_current = T::default();
+        }
+
+        max_current = max_current + self.key;
+
+        (best_current, max_current)
     }
 }
 
@@ -473,4 +508,46 @@ pub fn test_update() {
     assert!(!bst.search(1));
     assert!(bst.search(10));
     assert_eq!(bst.size(), 3);
+}
+
+#[test]
+pub fn test_delete_couples() {
+    let mut bst = BST::with_root((1, 2));
+    bst.add((3, 2));
+    bst.add((5, 2));
+    bst.add((2, 1));
+    bst.add((4, 1));
+    bst.add((6, 1));
+    assert_eq!(bst.size(), 6);
+
+    assert!(bst.delete((2, 1)));
+    assert_eq!(bst.size(), 5);
+    bst.print();
+    println!("-------------------");
+
+    assert!(bst.delete((3, 2)));
+    assert_eq!(bst.size(), 4);
+    bst.print();
+    println!("-------------------");
+
+    assert!(bst.delete((5, 2)));
+    assert_eq!(bst.size(), 3);
+    bst.print();
+    println!("-------------------");
+
+    println!("Root: {:?}", bst.key);
+    if let Some(ref left) = bst.left {
+        println!("Left: {:?}", left.key);
+    } else {
+        println!("Left: None");
+    }
+    if let Some(ref right) = bst.right {
+        println!("Right: {:?}", right.key);
+    } else {
+        println!("Right: None");
+    }
+    assert!(bst.delete((1, 2)));
+    bst.print();
+    println!("-------------------");
+    assert_eq!(bst.size(), 2);
 }
