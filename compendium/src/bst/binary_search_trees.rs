@@ -5,7 +5,7 @@ use std::ops::Add;
 #[derive(Clone)]
 pub struct BST<T>
 where
-    T: Default + Ord + Debug + MinMax + Copy + Clone,
+    T: Default + Ord + Debug + Copy + Clone,
 {
     key: T,
     left: Option<Box<BST<T>>>,
@@ -324,7 +324,7 @@ where
 
 impl<T> BST<T>
 where
-    T: Default + Ord + Debug +  Copy + Clone + Add<Output = T>,
+    T: Default + Ord + Debug + Copy + Clone + Add<Output = T> + MinMax + Copy,
 {
     pub fn equally_distanced_nodes(&self) -> usize {
         self.equally_distanced_nodes_rec(<T>::default()).0
@@ -521,33 +521,22 @@ pub fn test_delete_couples() {
     assert_eq!(bst.size(), 6);
 
     assert!(bst.delete((2, 1)));
+    assert!(!bst.search((2, 1)));
     assert_eq!(bst.size(), 5);
-    bst.print();
-    println!("-------------------");
 
     assert!(bst.delete((3, 2)));
+    assert!(!bst.search((3, 2)));
     assert_eq!(bst.size(), 4);
-    bst.print();
-    println!("-------------------");
 
     assert!(bst.delete((5, 2)));
+    assert!(!bst.search((5, 2)));
     assert_eq!(bst.size(), 3);
-    bst.print();
-    println!("-------------------");
 
-    println!("Root: {:?}", bst.key);
-    if let Some(ref left) = bst.left {
-        println!("Left: {:?}", left.key);
-    } else {
-        println!("Left: None");
-    }
-    if let Some(ref right) = bst.right {
-        println!("Right: {:?}", right.key);
-    } else {
-        println!("Right: None");
-    }
     assert!(bst.delete((1, 2)));
-    bst.print();
-    println!("-------------------");
+    assert!(!bst.search((1, 2)));
     assert_eq!(bst.size(), 2);
+
+    assert!(bst.delete((4, 1)));
+    assert!(!bst.search((4, 1)));
+    assert_eq!(bst.size(), 1);
 }

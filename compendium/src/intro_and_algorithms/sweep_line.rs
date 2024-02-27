@@ -34,7 +34,11 @@ where
 /// returns: i32
 ///
 /// \theta(n log n)
-pub fn maximum_number_overlapping_intervals(mut intervals: Vec<(i32, i32)>) -> i32 {
+pub fn maximum_number_overlapping_intervals(intervals: Vec<(i32, i32)>) -> i32 {
+    *overlapping_intervals(intervals).iter().max().unwrap()
+}
+
+pub fn overlapping_intervals(mut intervals: Vec<(i32, i32)>) -> Vec<i32> {
     intervals.sort_by_key(|&x| x.0);
     let max = intervals.iter().map(|&x| x.1).max().unwrap() as usize;
 
@@ -45,7 +49,7 @@ pub fn maximum_number_overlapping_intervals(mut intervals: Vec<(i32, i32)>) -> i
         ps[b as usize + 1] -= 1;
     }
 
-    *prefix_sums(ps).iter().max().unwrap()
+    prefix_sums(ps)
 }
 
 #[test]
