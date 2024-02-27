@@ -1,7 +1,7 @@
 use num_traits::{Num, NumCast};
 use std::fmt::Debug;
 
-///
+#[derive(Clone)]
 pub struct BST<T>
 where
     T: Default + Ord + Debug + Num + NumCast + Copy + Clone,
@@ -23,13 +23,23 @@ where
     ///
     /// returns: BST<T>
     ///
-    pub fn new(key: T) -> Self {
+    pub fn with_root(key: T) -> Self {
         Self {
             key,
             left: None,
             right: None,
         }
     }
+
+    pub fn from_vec(v: Vec<T>) -> Self {
+        let mut bst = BST::with_root(v[0]);
+        for i in 1..v.len() {
+            bst.add(v[i]);
+        }
+        bst
+
+    }
+
 
     /// Adds a new node to the tree maintaining the BST property.
     ///
@@ -44,16 +54,77 @@ where
             if let Some(ref mut left) = self.left {
                 left.add(val);
             } else {
-                self.left = Some(Box::new(BST::new(val)));
+                self.left = Some(Box::new(BST::with_root(val)));
             }
         } else {
             if let Some(ref mut right) = self.right {
                 right.add(val);
             } else {
-                self.right = Some(Box::new(BST::new(val)));
+                self.right = Some(Box::new(BST::with_root(val)));
             }
         }
     }
+
+    pub fn min(&self) -> &Self {
+        if let Some(ref left) = self.left {
+            return left.min();
+        }
+        self
+    }
+
+    pub fn delete(&mut self, x: T) -> bool {
+        if !self.search(x) {
+            return false;
+        }
+        match self.delete_rec(x) {
+            None => false,
+            Some(_) => true,
+        }
+    }
+
+    fn delete_rec(&mut self, x: T) -> Option<Box<BST<T>>> {
+        if self.key.eq(&x) {
+            // Case 1: only one of the children
+            if self.left.is_none() {
+                return self.right.take();
+            } else if self.right.is_none() {
+                return self.left.take();
+            } else {
+                // Case 3: both children
+                let mut right_subtree = self.right.take().unwrap();
+                // take minimum of the right subtree
+                let min = right_subtree.min();
+                // set current node value as the minimum
+                self.key = min.key;
+                // delete the minimum recursively, that will be either Case 1 or 2
+                self.right = right_subtree.delete_rec(min.key);
+            }
+        } else if self.key.lt(&x) {
+            if let Some(right) = self.right.as_mut() {
+                let new_right = right.delete_rec(x);
+                self.right = new_right;
+            }
+        } else {
+            if let Some(left) = self.left.as_mut() {
+                let new_left = left.delete_rec(x);
+                self.left = new_left;
+            }
+        }
+
+        Some(Box::new(self.clone()))
+    }
+
+    pub fn update(&mut self, key: T, val: T) -> bool {
+
+        if !self.delete(key) {
+            return false;
+        }
+
+        self.add(val);
+        true
+
+    }
+
 
     pub fn get_leaves(&self) -> Vec<T> {
         let mut leaves = Vec::new();
@@ -75,19 +146,22 @@ where
     }
 
     pub fn search(&self, x: T) -> bool {
-        self.predecessor(x + T::one()).eq(x)
+        match self.predecessor(x + T::one()) {
+            None => false,
+            Some(v) => v.eq(&x),
+        }
     }
 
-    /// Returns the size of the subtree rooted at the current node.
+    /// Returns the size of the tree.
     ///
     /// returns: usize
     ///
-    pub fn subtree_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         match (&self.left, &self.right) {
             (None, None) => 1,
-            (Some(ref left), None) => 1 + left.subtree_size(),
-            (None, Some(ref right)) => 1 + right.subtree_size(),
-            (Some(ref left), Some(ref right)) => 1 + left.subtree_size() + right.subtree_size(),
+            (Some(ref left), None) => 1 + left.size(),
+            (None, Some(ref right)) => 1 + right.size(),
+            (Some(ref left), Some(ref right)) => 1 + left.size() + right.size(),
         }
     }
 
@@ -200,8 +274,6 @@ where
         let mut max_to_left_leave = min;
         let mut best_right = min;
         let mut max_to_right_leaf = min;
-        let mut best_current = min;
-        let mut max_current = min;
 
         if let Some(ref left) = self.left {
             (best_left, max_to_left_leave) = left.maximum_path_sum_rec();
@@ -213,15 +285,15 @@ where
 
         // Weird stuff to avoid overflows in summing min
 
-        if max_to_left_leave == min || max_to_right_leaf == min {
-            best_current = best_right.max(best_left);
+        let best_current = if max_to_left_leave == min || max_to_right_leaf == min {
+            best_right.max(best_left)
         } else {
-            best_current = best_right
+            best_right
                 .max(best_left)
-                .max(max_to_right_leaf + max_to_left_leave + self.key);
-        }
+                .max(max_to_right_leaf + max_to_left_leave + self.key)
+        };
 
-        max_current = max_to_left_leave.max(max_to_right_leaf);
+        let mut max_current = max_to_left_leave.max(max_to_right_leaf);
 
         // Weird stuff to avoid overflows in summing min (again)
 
@@ -300,16 +372,16 @@ where
 /// --------- TESTS ------------
 
 fn setup() -> BST<i32> {
-    let mut bst = BST::new(2);
+    let mut bst = BST::with_root(2);
     bst.add(1);
     bst.add(3);
     bst
 }
 
 #[test]
-pub fn test_subtree_size() {
+pub fn test_size() {
     let bst = setup();
-    assert_eq!(bst.subtree_size(), 3);
+    assert_eq!(bst.size(), 3);
 }
 
 #[test]
@@ -323,7 +395,7 @@ pub fn test_bst_check() {
     let mut bst = setup();
     assert_eq!(bst.bst_check(), true);
 
-    bst = BST::new(2);
+    bst = BST::with_root(2);
     bst.add(3);
     bst.add(1);
     assert_eq!(bst.bst_check(), true);
@@ -331,12 +403,12 @@ pub fn test_bst_check() {
 
 #[test]
 pub fn test_equally_distanced_nodes() {
-    let mut bst = BST::new(1);
+    let mut bst = BST::with_root(1);
     bst.add(1);
     bst.add(2);
     assert_eq!(bst.equally_distanced_nodes(), 1);
 
-    bst = BST::new(0);
+    bst = BST::with_root(0);
     bst.add(0);
     bst.add(0);
     assert_eq!(bst.equally_distanced_nodes(), 3);
@@ -347,7 +419,7 @@ pub fn test_equally_distanced_nodes() {
 
 #[test]
 pub fn test_maximum_path_sum() {
-    let mut bst = BST::new(4);
+    let mut bst = BST::with_root(4);
     bst.add(2);
     bst.add(6);
     bst.add(1);
@@ -360,7 +432,7 @@ pub fn test_maximum_path_sum() {
 
 #[test]
 pub fn test_predecessor_successor() {
-    let mut bst = setup();
+    let bst = setup();
     // Predecessor
     assert_eq!(bst.predecessor(3), Some(2));
     assert_eq!(bst.predecessor(1), None);
@@ -372,4 +444,33 @@ pub fn test_predecessor_successor() {
     assert_eq!(bst.successor(1), Some(2));
     assert_eq!(bst.successor(2), Some(3));
     assert_eq!(bst.successor(-10), Some(1));
+}
+
+#[test]
+pub fn test_min() {
+    let mut bst = setup();
+    assert_eq!(bst.min().key, 1);
+    bst.add(0);
+    assert_eq!(bst.min().key, 0);
+}
+
+#[test]
+pub fn test_delete() {
+    let mut bst = setup();
+    assert!(bst.search(1));
+    assert_eq!(bst.size(), 3);
+    assert!(bst.delete(1));
+    assert!(!bst.search(1));
+    assert_eq!(bst.size(), 2);
+}
+
+#[test]
+pub fn test_update() {
+    let mut bst = setup();
+    assert!(bst.search(1));
+    assert_eq!(bst.size(), 3);
+    assert!(bst.update(1, 10));
+    assert!(!bst.search(1));
+    assert!(bst.search(10));
+    assert_eq!(bst.size(), 3);
 }
