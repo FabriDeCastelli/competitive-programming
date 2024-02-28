@@ -1,18 +1,20 @@
 use crate::segment_trees::segment_tree::SegmentTree;
 use std::cmp::min;
 use std::fmt::Debug;
-use std::ops::Add;
+use std::ops::{Add, Mul};
 
 struct DynamicRMQ<T>
 where
-    T: Default + Copy + Clone + Debug + Add<Output = T> + PartialOrd,
+    T: Default + Copy + Clone + Debug + Ord + From<usize> + Mul<T, Output = T>,
+    usize: Mul<T>,
 {
     segment_tree: SegmentTree<T, fn(T, T) -> T>,
 }
 
 impl<T> DynamicRMQ<T>
 where
-    T: Default + Copy + Clone + Debug + Add<Output = T> + PartialOrd + Ord,
+    T: Default + Copy + Clone + Debug + Ord + From<usize> + Mul<T, Output = T> + Add<Output = T>,
+    usize: Mul<T>,
 {
     pub fn from_vec(v: Vec<T>) -> Self {
         Self {
@@ -24,7 +26,7 @@ where
         self.segment_tree.update(i, v);
     }
 
-    pub fn rmq(&self, l: usize, r: usize) -> Option<T> {
+    pub fn rmq(&mut self, l: usize, r: usize) -> Option<T> {
         self.segment_tree.query(l, r)
     }
 }
@@ -34,7 +36,7 @@ where
 
 pub fn min_and_occurrences<T>(a: (T, T), b: (T, T)) -> (T, T)
 where
-    T: Default + Ord + Add,
+    T: Default + Ord + Add<Output = T>,
 {
     return if a.0 == b.0 {
         (a.0, a.1 + b.1)
