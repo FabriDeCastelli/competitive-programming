@@ -46,6 +46,10 @@ where
         fenwick_tree
     }
 
+    pub fn len(&self) -> usize {
+        self.tree.len() - 1
+    }
+
     /// Compute the sum of the first i elements of the tree.
     ///
     /// # Arguments
