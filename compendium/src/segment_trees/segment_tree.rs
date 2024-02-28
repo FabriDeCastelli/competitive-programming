@@ -1,26 +1,24 @@
 use std::fmt::Debug;
 
-struct SegmentTree<T, F, U>
+pub struct SegmentTree<T, F>
 where
     T: Default + Copy + Clone + Debug,
     F: Fn(T, T) -> T,
-    U: Fn(T, T) -> T,
 {
     length: usize,
     tree: Vec<T>,
     lazy: Vec<T>,
     propagate: F,
     combine: F,
-    update: U,
+    update: F,
 }
 
-impl<T, F, U> SegmentTree<T, F, U>
+impl<T, F> SegmentTree<T, F>
 where
     T: Default + Copy + Clone + Debug,
     F: Fn(T, T) -> T,
-    U: Fn(T, T) -> T,
 {
-    pub fn from_vec(v: Vec<T>, propagate: F, combine: F, update: U) -> Self {
+    pub fn from_vec(v: Vec<T>, propagate: F, combine: F, update: F) -> Self {
         let length = v.len();
         let lazy = vec![T::default(); 4 * length];
         let tree = vec![T::default(); 4 * length];
@@ -58,18 +56,22 @@ where
 
     fn update_rec(&mut self, i: usize, v: T, l: usize, r: usize, current: usize) {
         if l == r {
-            self.tree[l] = (self.update)(self.tree[l], v);
+            self.tree[current] = (self.update)(self.tree[current], v);
             return;
         }
 
         let mid = (l + r) / 2;
+        let left_child = Self::left_child(current);
+        let right_child = Self::right_child(current);
+
         if i <= mid {
-            self.update_rec(i, v, l, mid, Self::left_child(current));
+            self.update_rec(i, v, l, mid, left_child);
         } else {
-            self.update_rec(i, v, mid + 1, r, Self::right_child(current));
+            self.update_rec(i, v, mid + 1, r, right_child);
         }
 
-        self.tree[current] = (self.update)(self.tree[current], v);
+        // we use combine because we update the leaf node only and then propagate to the root
+        self.tree[current] = (self.combine)(self.tree[left_child], self.tree[right_child]);
     }
 
     pub fn print(&self) {
@@ -143,6 +145,7 @@ fn test_segment_tree() {
     let v = vec![1, 2, 3, 4];
     let sum = |a, b| a + b;
     let mut segment_tree = SegmentTree::from_vec(v, sum, sum, sum);
-    segment_tree.update(1, 3);
+    segment_tree.update(0, 3);
+    segment_tree.print();
     assert_eq!(segment_tree.query(0, 3), Some(13));
 }
