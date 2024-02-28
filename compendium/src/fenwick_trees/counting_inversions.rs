@@ -25,7 +25,8 @@ where
         + AddAssign
         + PartialEq
         + Debug
-        + Hash, usize: From<T>,
+        + Hash,
+    usize: From<T>,
 {
     let n = a.len();
 
@@ -63,7 +64,7 @@ where
         + PartialEq
         + Debug
         + Hash,
-        usize: From<T>,
+    usize: From<T>,
 {
     let mut b = a.clone();
     b.sort();

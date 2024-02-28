@@ -98,5 +98,4 @@ pub fn test_update_access() {
     assert_eq!(a.access(6), 0);
     assert_eq!(a.range_sum(3, 5), 30);
     assert_eq!(a.range_sum(4, 5), 20);
-
 }
