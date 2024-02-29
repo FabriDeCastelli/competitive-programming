@@ -28,7 +28,7 @@ pub fn fractional_knapsack(v: Vec<i32>, w: Vec<usize>, capacity: usize) -> f32 {
     let mut res = 0.;
     let mut left_capacity = capacity;
     let mut i = 0;
-    while left_capacity >= 0 {
+    while left_capacity >= 0  && i < n {
         if w[i] <= left_capacity {
             res = res + v[i] as f32;
         } else {
